@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title> Space Trader </title>
+    <link rel="stylesheet" href="../static/css/style.css">
+
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+
+      google.charts.load('current', {'packages':['corechart']});
+      google.charts.setOnLoadCallback(drawChart);
+
+      var ordered = [];
+
+      var playerData = {{ playerData|tojson }};
+      var regionData = {{ regionData|tojson }};
+      var marketData = regionData.market;
+      var currentNPC = {{ currentNPC|tojson }};
+
+      //loads all intial data from the provided jsons
+      function loadData() {
+        // if ship health is 0
+        if (playerData.ship.health == 0) {
+          activateGameOverOverlay();
+        } else if (playerData.inventory["item10"].count > 0) {
+          activateGameWinOverlay();
+        } else {
+          
+
+          //if the current npc is not none
+          if(currentNPC.id != 0) {
+            //if you are still encountering the npc
+            if(!currentNPC.over) {
+              activateNPCOverlay(currentNPC.id);
+            }
+            //if done, display the outcome
+            else {
+              activateOutcomeOverlay(currentNPC.outcome);
+            }
+          }
+        }
+          
+          document.getElementById("name").innerHTML = playerData.name;
+          document.getElementById("pilotSkill").innerHTML = "Pilot: " + playerData.pilot_skill;
+          document.getElementById("fighterSkill").innerHTML = "Fighter: " + playerData.fighter_skill;
+          document.getElementById("merchantSkill").innerHTML = "Merchant: " + playerData.merchant_skill;
+          document.getElementById("engineerSkill").innerHTML = "Engineer: " + playerData.engineer_skill;
+          document.getElementById("credits").innerHTML = playerData.credits + " Credits";
+
+          document.getElementById("regionName").innerHTML = "Name: " + regionData.name;
+          document.getElementById("regionTech").innerHTML = "Tech Level: " + regionData.techLevel.name;
+          document.getElementById("regionGov").innerHTML = "Goverment: " + "";
+          document.getElementById("regionClimate").innerHTML = "Climate: " + "";
+          document.getElementById("regionCoord").innerHTML = "Coordinates: " + "(" + regionData.coordinate.xray + ", " + regionData.coordinate.yankee + ")";
+
+          document.getElementById("shipType").innerHTML = "Type: " + playerData.ship.type;
+          document.getElementById("shipCargo").innerHTML = "Cargo: " + playerData.ship.cargo + "/" + playerData.ship.cargo_cap;
+          document.getElementById("shipFuel").innerHTML = "Fuel: " + playerData.ship.fuel + "/" + playerData.ship.fuel_cap;
+          document.getElementById("shipHealth").innerHTML = "Health: " + playerData.ship.health + "/" + playerData.ship.health_cap;
+          document.getElementById("shipSpeed").innerHTML = "Speed: " + playerData.ship.speed;
+
+
+          var i;
+          for(i = 0; i < 11; i++) {
+            document.getElementById("m" + i).innerHTML = marketData.inventory["item" + i].name + ": " + marketData.inventory["item" + i].count;
+            document.getElementById("bp" + i).innerHTML = marketData.prices["buy_price" + i] + "c *";
+            document.getElementById("bi" + i).max = marketData.inventory["item" + i].count;
+            document.getElementById("p" + i).innerHTML = playerData.inventory["item" + i].name + ": " + playerData.inventory["item" + i].count;
+            document.getElementById("cs" + i).innerHTML = "(Size " + playerData.inventory["item" + i].size + ")";
+            document.getElementById("sp" + i).innerHTML = marketData.prices["price" + i] + "c *";
+            document.getElementById("si" + i).max = playerData.inventory["item" + i].count;
+          }
+
+          document.getElementById("m10").innerHTML = playerData.name + "'s World: " + marketData.inventory["item10"].count;
+          document.getElementById("p10").innerHTML = "";
+          document.getElementById("cs10").innerHTML = "";
+          document.getElementById("sp10").innerHTML = "NA";
+
+          
+      }
+
+      //draws region map chart
+      function drawChart() {
+
+          //data to be represented in the chart
+          var data = new google.visualization.DataTable();
+          data.addColumn('number', '');
+          data.addColumn('number', '');
+          data.addColumn( {'type': 'string', 'role': 'style'} );
+
+          var currentX= regionData.coordinate.xray;
+          var currentY= regionData.coordinate.yankee;
+
+          //goes through each region, adds it to the data
+          var universeData = {{ universeData|tojson }};
+          for (const [key, region] of Object.entries(universeData)) {
+
+              //if the region is the current region, make it blue
+              if(region.coordinate.xray == currentX && region.coordinate.yankee == currentY){
+                data.addRows([
+                  [{v:region.coordinate.xray, f:region.name}, {v:region.coordinate.yankee, f: '\n Tech: ' + String(region.techLevel.name) + '\n (' + String(region.coordinate.xray) + ', ' + String(region.coordinate.yankee) + ')'}, 'point {fill-color: #557ed9'],
+                ]);
+              }
+              //otherwise, make it green
+              else {
+                data.addRows([
+                  [{v:region.coordinate.xray, f:region.name}, {v:region.coordinate.yankee, f: '\n Tech: ' + String(region.techLevel.name) + '\n (' + String(region.coordinate.xray) + ', ' + String(region.coordinate.yankee) + ')'}, 'point {fill-color: #408040'],
+                ]);
+              }
+
+              //stores regions in the order they were added to the table useful, this list is used to retrieve which region was selected based on the number of the region clicked
+              ordered.push(region);
+          }
+          
+          //configuration of region points
+          var options = {
+              hAxis: {minValue: -400, maxValue: 400},
+              vAxis: {minValue: -200, maxValue: 200},
+              legend: 'none',
+              pointShape: 'circle',
+              pointSize: 8,
+              backgroundColor: {fillOpacity: 0},
+          };
+
+          //creates a chart using the data
+          var chart = new google.visualization.ScatterChart(document.getElementById('chart_div'));
+          chart.draw(data, options);
+
+          //adds handler for when a point is selected
+          google.visualization.events.addListener(chart, 'select', selectHandler);
+
+          function selectHandler(e) {
+
+              //selection is the point selected
+              var selection = chart.getSelection();
+              //data is the data of that point
+              var data = selection[0];
+              if(data != null) {
+                  //data.row corresponds to the order which the data was added to the chart, using ordered we can retrieve which region this is
+                  var region = ordered[data.row];
+
+                  //sets target region information based on the selected region
+                  document.getElementById("targetName").innerHTML = "Name: " + region.name;
+                  document.getElementById("targetTech").innerHTML = "Tech Level: " + region.techLevel.name;
+                  document.getElementById("targetCoords").innerHTML = "Coordinates: (" + region.coordinate.xray + ", " + region.coordinate.yankee + ")";
+                  document.getElementById("targetDist").innerHTML = "Distance: " + (Math.round(region.distance * 100) / 100);
+                  document.getElementById("targetCost").innerHTML = "Fuel Cost: " + (Math.round(region.fuel_cost * 100) / 100);
+              }
+          }
+      }
+
+      //activates npc overlay, overlayId of 1 is for pirate, 2 for police, 3 for trader
+      function activateNPCOverlay(overlayId) {
+        if(overlayId == 1) {
+          document.getElementById('demand').innerHTML = (currentNPC.demand);
+        }
+        if(overlayId == 2) {
+          document.getElementById('contraband').innerHTML = ("You have contraband, turn over your " + currentNPC.stolen_item);
+        }
+        if(overlayId == 3) {
+          document.getElementById('offer').innerHTML = ("Their Offer " + currentNPC.selling_item_count + " " + currentNPC.selling_item + " for " + currentNPC.selling_item_price);
+        }
+        //display overlay
+        document.getElementById('overlay' + overlayId).style.display = "block";
+      }
+
+      //activates outcome overlay
+      function activateOutcomeOverlay(outcome) {
+          //describe what happened to the player after the encounter
+          document.getElementById('npcOutcome').innerHTML = outcome;
+          document.getElementById('overlayOutcome').style.display = "block";
+      }
+
+      //activates game over overlay
+      function activateGameOverOverlay() {
+          //describe what happened to the player after game over
+          document.getElementById('overlayGameOver').style.display = "block";
+      }
+
+      //activates game win overlay
+      function activateGameWinOverlay() {
+          //describe what happened to the player after game win
+          document.getElementById('overlayGameWin').style.display = "block";
+      }
+
+      //updates the cost of buying count many of an item, index is the slot number of that item
+      function updateBuyTotal(count, index) {
+        var marketCountString = document.getElementById('m' + index).innerHTML;
+        var marketCount = parseInt(marketCountString.substring(marketCountString.indexOf(":") + 2));
+        var rateString = document.getElementById('bp' + index).innerHTML;
+        var rate = parseFloat(rateString.substring(0, rateString.length - 3));
+        if(count <= marketCount) {
+          document.getElementById('bt' + index).innerHTML = "= " + (Math.round(rate * count * 100) / 100) + "c";
+        }
+        else {
+          document.getElementById('bt' + index).innerHTML = "= " + (Math.round(rate * marketCount * 100) / 100) + "c";
+          document.getElementById('bi' + index).value = marketCount;
+        }
+      }
+
+      //updates the cost of selling count many of an item, index is the slot number of the item
+      function updateSellTotal(count, index) {
+        var playerCountString = document.getElementById('p' + index).innerHTML;
+        var playerCount = parseInt(playerCountString.substring(playerCountString.indexOf(":") + 2));
+        var rateString = document.getElementById('sp' + index).innerHTML;
+        var rate = parseFloat(rateString.substring(0, rateString.length - 3));
+        if(count <= playerCount) {
+          document.getElementById('st' + index).innerHTML = "= " + (Math.round(rate * count * 100) / 100) + "c";
+        }
+        else {
+          document.getElementById('st' + index).innerHTML = "= " + (Math.round(rate * playerCount * 100) / 100) + "c";
+          document.getElementById('si' + index).value = playerCount;
+        }
+      }
+
+      //returns if player can travel to the selected region, sets post data if true
+      function validNextRegion() {
+          var targetFuelCost = document.getElementById("targetCost").innerHTML;
+          var targetFuelCostFloat = parseFloat(targetFuelCost.substring(11));
+
+          if (isNaN(parseFloat(targetFuelCostFloat))) {
+            alert("No Destination");
+          } else if (targetFuelCostFloat > playerData.ship.fuel) {
+            alert("Insuficient Fuel");
+          } else if(targetFuelCostFloat > 0 && targetFuelCostFloat <= playerData.ship.fuel) {
+
+              var targetName = document.getElementById("targetName").innerHTML;
+
+              document.getElementById("nextRegionInput").value = targetName.substring(6);
+              document.getElementById("nextRegionFuelCost").value = targetFuelCost.substring(11); //substring filters out the label
+              return true;
+          }
+          return false;
+      }
+
+      //returns if player can refuel
+      function validRefuel() {
+          if(playerData.ship.fuel < playerData.ship.fuel_cap) {
+              return true;
+          }
+          return false;
+      }
+
+      //returns if player can repair
+      function validRepair() {
+          if(playerData.ship.health < playerData.ship.health_cap) {
+              return true;
+          }
+          return false;
+      }
+
+      //returns if the player can afford a trade
+      function validTrade() {
+        if(playerData.credits < currentNPC.selling_item_price) {
+          alert("Insuficient Credits");
+          return false;
+        }
+        else if(playerData.ship.cargo + currentNPC.selling_item_cargo > playerData.ship.cargo_cap) {
+          alert("Insuficient Cargo Space");
+          return false;
+        }
+        return true;
+      }
+
+      //returns if player can buy the items they have specified, sets post data if true
+      function validBuy() {
+
+          var cost = 0;
+
+          //totals cost of all items
+          var i;
+          for(i = 0; i < 11; i++) {
+            var slotString = document.getElementById('bt' + i).innerHTML;
+            var slotCost = parseInt(slotString.substring(2, slotString.length - 1));
+            cost += slotCost;
+          }
+
+          //cannot buy nothing
+          if(cost == 0) {
+            return false;
+          }
+          
+          //cannot buy more than player can afford
+          if(cost > playerData.credits) {
+            alert("Insuficient Credits");
+            return false;
+          }  
+
+          //totals cargo size of all items
+          var cargo = 0;
+          for(i = 0; i < 11; i++) {
+            //for some reason the + 0 then / 10 is needed
+            var slotCount = document.getElementById('bi' + i).value + 0;
+            slotCount /= 10;
+            //sets the count of each item here
+            document.getElementById("bc" + i).value = slotCount;
+            var slotSizeString = document.getElementById('cs' + i).innerHTML;
+            var slotSize = parseInt(slotSizeString.substring(6, slotSizeString.length - 1));
+            cargo += slotCount * slotSize;
+          }
+
+          //cannot buy more than you can store
+          if(cargo + playerData.ship.cargo > playerData.ship.cargo_cap) {
+            alert("Insuficient Cargo Space");
+            return false;
+          }
+
+          document.getElementById("buyCost").value = cost;
+          return true;
+      }
+
+      //returns if player can sell the items they have specified, sets post data if true
+      function validSell() {
+
+          var cost = 0;
+
+          //totals cost of all items
+          var i;
+          for(i = 0; i < 11; i++) {
+            var slotString = document.getElementById('st' + i).innerHTML;
+            var slotCost = parseInt(slotString.substring(2, slotString.length - 1));
+            cost += slotCost;
+          }
+
+          //cannot sell nothing
+          if(cost == 0) {
+            return false;
+          } 
+
+          for(i = 0; i < 11; i++) {
+            //for some reason the + 0 then / 10 is needed
+            var slotCount = document.getElementById('si' + i).value + 0;
+            slotCount /= 10;
+            //sets the count of each item
+            document.getElementById("sc" + i).value = slotCount;
+          }
+
+          document.getElementById("sellCost").value = cost;
+          return true;
+      }
+    </script>
+  </head>
+
+  <body class="mainFont" style="background-color: #c4c4c4" onload="loadData()">
+
+    <!--Bandid Overlay TO DOO-->
+    <div class="overlay" id="overlay1">
+      <div class="npcBlock">
+        
+        <div style="height: 5vh">
+          <div class="npcTitle">BANDIT</div>
+        </div>
+        
+        <div style="height: 8vh">
+          <div style="padding-top: 2vh; text-align: center; font-size: 1.25em; padding-left: 2em; padding-right: 2em" id="demand">Give me 0 credits and nobody gets hurt!</div>
+        </div>
+
+        <div style="height: 38vh">
+          <div style="text-align: center"> 
+            <img src="https://i.ibb.co/k06gwpj/Space-Pirate.png" alt="Space Bandit">
+          </div>
+        </div>
+        
+        <div style="display: flex; height: 10vh; width: 60%; margin-left: auto; margin-right: auto">
+          <form action="/Map/NPCFlee" method="post" class="npcOption">
+            <input type="submit" value="Flee"  onClick="return true" class="npcButton"/>
+          </form>
+          <form action="/Map/NPCFight" method="post" class="npcOption">
+            <input type="submit" value="Fight" onClick="return true" class="npcButton"/>
+          </form>
+          <form action="/Map/NPCForfeit" method="post" class="npcOption">
+            <input type="submit" value="Forfeit" onClick="return true" class="npcButton"/>
+          </form>
+        </div>
+
+      </div>
+    </div>
+
+    <!--Police Overlay-->
+    <div class="overlay" id="overlay2">
+      <div class="npcBlock">
+        
+        <div style="height: 5vh">
+          <div class="npcTitle">POLICE</div>
+        </div>
+        
+        <div style="height: 8vh">
+          <div style="padding-top: 2vh; text-align: center; font-size: 1.25em" id="contraband">You have contraband</div>
+        </div>
+
+        <div style="height: 38vh">
+          <div style="text-align: center"> 
+            <img src="https://i.ibb.co/dfsgsBj/SpaceCop.png" alt="Space Cop">
+          </div>
+        </div>
+        
+        <div style="display: flex; height: 10vh; width: 60%; margin-left: auto; margin-right: auto">
+          <form action="/Map/NPCFlee" method="post" class="npcOption">
+            <input type="submit" value="Flee"  onClick="return true" class="npcButton"/>
+          </form>
+          <form action="/Map/NPCFight" method="post" class="npcOption">
+            <input type="submit" value="Fight" onClick="return true" class="npcButton"/>
+          </form>
+          <form action="/Map/NPCForfeit" method="post" class="npcOption">
+            <input type="submit" value="Forfeit" onClick="return true" class="npcButton"/>
+          </form>
+        </div>
+
+      </div>
+    </div>
+    
+    <!--Trader Overlay TO DOO-->
+    <div class="overlay" id="overlay3">
+      <div class="npcBlock">
+        
+        <div style="height: 5vh">
+          <div class="npcTitle">TRADER</div>
+        </div>
+        
+        <div style="height: 6vh">
+          <div style="padding-top: 2vh; text-align: center; font-size: 1.25em">Would you be interested in a trade agreement with Zopland?</div>
+        </div>
+        <div style="height: 4vh">
+          <div style="text-align: center; font-size: 1.25em" id="offer">Their Offer:    Your Offer:</div>
+        </div>
+
+        <div style="height: 36vh">
+          <div style="text-align: center"> 
+            <img src="https://i.ibb.co/BnG8yKF/Space-Trader.png" alt="Space Trader">
+          </div>
+        </div>
+        
+        <div style="display: flex; height: 10vh; width: 80%; margin-left: auto; margin-right: auto">
+          <form action="/Map/NPCTrade" method="post" class="npcOption">
+            <input type="submit" value="Trade"  onClick="return validTrade()" class="npcButton"/>
+          </form>
+          <form action="/Map/NPCHaggle" method="post" class="npcOption">
+            <input type="submit" value="Haggle"  onClick="return true" class="npcButton"/>
+          </form>
+          <form action="/Map/NPCFight" method="post" class="npcOption">
+            <input type="submit" value="Fight" onClick="return true" class="npcButton"/>
+          </form>
+          <form action="/Map/NPCForfeit" method="post" class="npcOption">
+            <input type="submit" value="Leave" onClick="return true" class="npcButton"/>
+          </form>
+        </div>
+
+      </div>
+    </div>
+
+    <!--Outcome Overlay-->
+    <div class="overlay" id="overlayOutcome">
+      <div class="npcBlock">
+
+        <div style="height: 50vh">
+          <div style="padding-top: 20vh; text-align: center; font-size: 1.5em" id="npcOutcome"></div>
+        </div>
+
+        <div style="display: flex; height: 10vh; margin-left: auto; margin-right: auto">
+          <form action="/Map/NPCDismiss" method="post" class="npcOption">
+            <input type="submit" value="Continue" onClick="return true" class="npcButton"/>
+          </form>
+        </div>
+
+      </div>
+    </div>
+
+    <!--Game Over Overlay-->
+    <div class="overlay" id="overlayGameOver">
+      <div class="npcBlock">
+
+        <div style="height: 50vh">
+          <div style="padding-top: 20vh; text-align: center; font-size: 1.5em">You Died!</div>
+        </div>
+
+        <div style="display: flex; height: 10vh; margin-left: auto; margin-right: auto">
+          <form action="/restart" method="post" class="npcOption">
+            <input type="submit" value="New Game" onClick="return true" class="npcButton"/>
+          </form>
+        </div>
+
+      </div>
+    </div>
+
+    <!--Game Win Overlay-->
+    <div class="overlay" id="overlayGameWin">
+      <div class="npcBlock">
+
+        <div style="height: 50vh">
+          <div style="padding-top: 20vh; text-align: center; font-size: 1.5em">You Won!</div>
+        </div>
+
+        <div style="display: flex; height: 10vh; margin-left: auto; margin-right: auto">
+          <form action="/restart" method="post" class="npcOption">
+            <input type="submit" value="New Game" onClick="return true" class="npcButton"/>
+          </form>
+        </div>
+
+      </div>
+    </div>
+
+    <div style="position: relative; margin-top: 1vh">
+
+      <div style="margin: auto; height: 48vh; display: flex">
+
+        <div class="box" style="width: 12vw">
+          <div class="mediumText" style="text-align: center; margin-top: 1em">Market</div>
+          <div class="marketInfo" id="m0">Food: </div>
+          <div class="marketInfo" id="m1">Wood: </div>
+          <div class="marketInfo" id="m2">Spices: </div>
+          <div class="marketInfo" id="m3">Gold: </div>
+          <div class="marketInfo" id="m4">Medicine: </div>
+          <div class="marketInfo" id="m5">Phones: </div>
+          <div class="marketInfo" id="m6">Computers: </div>
+          <div class="marketInfo" id="m7">Ray Guns: </div>
+          <div class="marketInfo" id="m8">Nanobots: </div>
+          <div class="marketInfo" id="m9">Dark Matter: </div>
+          <div class="marketInfo" id="m10">Special: </div>
+        </div>
+
+        <div class="box" style="width: 16vw; text-align: center">
+          <div class="mediumText" style="text-align: center; margin-top: 1em">Buy</div>
+
+          <div style="display: flex">
+            <div class="price" id="bp0">0c *</div>
+            <input class="marketInput" id="bi0" type="number" step="1" min="0" placeholder="0" onChange="updateBuyTotal(this.value, 0)">
+            <div class="totalPrice" id="bt0">= 0c</div>
+          </div>
+          <div style="display: flex">
+            <div class="price" id="bp1">0c *</div>
+            <input class="marketInput" id="bi1" type="number" step="1" min="0" placeholder="0" onChange="updateBuyTotal(this.value, 1)">
+            <div class="totalPrice" id="bt1">= 0c</div>
+          </div>
+          <div style="display: flex">
+            <div class="price" id="bp2">0c *</div>
+            <input class="marketInput" id="bi2" type="number" step="1" min="0" placeholder="0" onChange="updateBuyTotal(this.value, 2)">
+            <div class="totalPrice" id="bt2">= 0c</div>
+          </div>
+          <div style="display: flex">
+            <div class="price" id="bp3">0c *</div>
+            <input class="marketInput" id="bi3" type="number" step="1" min="0" placeholder="0" onChange="updateBuyTotal(this.value, 3)">
+            <div class="totalPrice" id="bt3">= 0c</div>
+          </div>
+          <div style="display: flex">
+            <div class="price" id="bp4">0c *</div>
+            <input class="marketInput" id="bi4" type="number" step="1" min="0" placeholder="0" onChange="updateBuyTotal(this.value, 4)">
+            <div class="totalPrice" id="bt4">= 0c</div>
+          </div>
+          <div style="display: flex">
+            <div class="price" id="bp5">0c *</div>
+            <input class="marketInput" id="bi5" type="number" step="1" min="0" placeholder="0" onChange="updateBuyTotal(this.value, 5)">
+            <div class="totalPrice" id="bt5">= 0c</div>
+          </div>
+          <div style="display: flex">
+            <div class="price" id="bp6">0c *</div>
+            <input class="marketInput" id="bi6" type="number" step="1" min="0" placeholder="0" onChange="updateBuyTotal(this.value, 6)">
+            <div class="totalPrice" id="bt6">= 0c</div>
+          </div>
+          <div style="display: flex">
+            <div class="price" id="bp7">0c *</div>
+            <input class="marketInput" id="bi7" type="number" step="1" min="0" placeholder="0" onChange="updateBuyTotal(this.value, 7)">
+            <div class="totalPrice" id="bt7">= 0c</div>
+          </div>
+          <div style="display: flex">
+            <div class="price" id="bp8">0c *</div>
+            <input class="marketInput" id="bi8" type="number" step="1" min="0" placeholder="0" onChange="updateBuyTotal(this.value, 8)">
+            <div class="totalPrice" id="bt8">= 0c</div>
+          </div>
+          <div style="display: flex">
+            <div class="price" id="bp9">0c *</div>
+            <input class="marketInput" id="bi9" type="number" step="1" min="0" placeholder="0" onChange="updateBuyTotal(this.value, 9)">
+            <div class="totalPrice" id="bt9">= 0c</div>
+          </div>
+          <div style="display: flex">
+            <div class="price" id="bp10">0c *</div>
+            <input class="marketInput" id="bi10" type="number" step="1" min="0" placeholder="0" onChange="updateBuyTotal(this.value, 10)">
+            <div class="totalPrice" id="bt10">= 0c</div>
+          </div>
+          
+          <form action="/Map/Buy" method="post">
+              <input type="hidden" id="bc0" name="buyCount0"/>
+              <input type="hidden" id="bc1" name="buyCount1"/>
+              <input type="hidden" id="bc2" name="buyCount2"/>
+              <input type="hidden" id="bc3" name="buyCount3"/>
+              <input type="hidden" id="bc4" name="buyCount4"/>
+              <input type="hidden" id="bc5" name="buyCount5"/>
+              <input type="hidden" id="bc6" name="buyCount6"/>
+              <input type="hidden" id="bc7" name="buyCount7"/>
+              <input type="hidden" id="bc8" name="buyCount8"/>
+              <input type="hidden" id="bc9" name="buyCount9"/>
+              <input type="hidden" id="bc10" name="buyCount10"/>
+              <input type="hidden" id="buyCost" name="buyCost"/>
+              <input type="submit" value="Buy" class="tradeButton" style="text-align: center; margin-top: 1.5vh; height: 1.75em; width: 5em" onClick="return validBuy()"/>
+          </form>
+
+        </div>
+
+        <div class="box" style="width: 16vw; text-align: center">
+          <div class="mediumText" style="text-align: center; margin-top: 1em">Sell</div>
+
+          <div style="display: flex">
+            <div class="price" id="sp0">0c *</div>
+            <input class="marketInput" id="si0" type="number" step="1" min="0" placeholder="0" onChange="updateSellTotal(this.value, 0)">
+            <div class="totalPrice" id="st0">= 0c</div>
+          </div>
+          <div style="display: flex">
+            <div class="price" id="sp1">0c *</div>
+            <input class="marketInput" id="si1" type="number" step="1" min="0" placeholder="0" onChange="updateSellTotal(this.value, 1)">
+            <div class="totalPrice" id="st1">= 0c</div>
+          </div>
+          <div style="display: flex">
+            <div class="price" id="sp2">0c *</div>
+            <input class="marketInput" id="si2" type="number" step="1" min="0" placeholder="0" onChange="updateSellTotal(this.value, 2)">
+            <div class="totalPrice" id="st2">= 0c</div>
+          </div>
+          <div style="display: flex">
+            <div class="price" id="sp3">0c *</div>
+            <input class="marketInput" id="si3" type="number" step="1" min="0" placeholder="0" onChange="updateSellTotal(this.value, 3)">
+            <div class="totalPrice" id="st3">= 0c</div>
+          </div>
+          <div style="display: flex">
+            <div class="price" id="sp4">0c *</div>
+            <input class="marketInput" id="si4" type="number" step="1" min="0" placeholder="0" onChange="updateSellTotal(this.value, 4)">
+            <div class="totalPrice" id="st4">= 0c</div>
+          </div>
+          <div style="display: flex">
+            <div class="price" id="sp5">0c *</div>
+            <input class="marketInput" id="si5" type="number" step="1" min="0" placeholder="0" onChange="updateSellTotal(this.value, 5)">
+            <div class="totalPrice" id="st5">= 0c</div>
+          </div>
+          <div style="display: flex">
+            <div class="price" id="sp6">0c *</div>
+            <input class="marketInput" id="si6" type="number" step="1" min="0" placeholder="0" onChange="updateSellTotal(this.value, 6)">
+            <div class="totalPrice" id="st6">= 0c</div>
+          </div>
+          <div style="display: flex">
+            <div class="price" id="sp7">0c *</div>
+            <input class="marketInput" id="si7" type="number" step="1" min="0" placeholder="0" onChange="updateSellTotal(this.value, 7)">
+            <div class="totalPrice" id="st7">= 0c</div>
+          </div>
+          <div style="display: flex">
+            <div class="price" id="sp8">0c *</div>
+            <input class="marketInput" id="si8" type="number" step="1" min="0" placeholder="0" onChange="updateSellTotal(this.value, 8)">
+            <div class="totalPrice" id="st8">= 0c</div>
+          </div>
+          <div style="display: flex">
+            <div class="price" id="sp9">0c *</div>
+            <input class="marketInput" id="si9" type="number" step="1" min="0" placeholder="0" onChange="updateSellTotal(this.value, 9)">
+            <div class="totalPrice" id="st9">= 0c</div>
+          </div>
+          <div style="display: flex">
+            <div class="price" id="sp10">0c *</div>
+            <input class="marketInput" id="si10" type="number" step="1" min="0" placeholder="0" onChange="updateSellTotal(this.value, 10)">
+            <div class="totalPrice" id="st10">= 0c</div>
+          </div>
+
+          <form action="/Map/Sell" method="post">
+              <input type="hidden" id="sc0" name="sellCount0"/>
+              <input type="hidden" id="sc1" name="sellCount1"/>
+              <input type="hidden" id="sc2" name="sellCount2"/>
+              <input type="hidden" id="sc3" name="sellCount3"/>
+              <input type="hidden" id="sc4" name="sellCount4"/>
+              <input type="hidden" id="sc5" name="sellCount5"/>
+              <input type="hidden" id="sc6" name="sellCount6"/>
+              <input type="hidden" id="sc7" name="sellCount7"/>
+              <input type="hidden" id="sc8" name="sellCount8"/>
+              <input type="hidden" id="sc9" name="sellCount9"/>
+              <input type="hidden" id="sc10" name="sellCount10"/>
+              <input type="hidden" id="sellCost" name="sellCost"/>
+              <input type="submit" value="Sell" class="tradeButton" style="text-align: center; margin-top: 1.5vh; height: 1.75em; width: 5em" onClick="return validSell()"/>
+          </form>
+        </div>
+
+        <div class="box" style="width: 20vw">
+          <div class="mediumText" style="text-align: center; margin-top: 1em">Inventory</div>
+          <div style="display: flex">
+            <div class="marketInfo" id="p0" style="width: 18em; margin-left: 1em">Food: </div>
+            <div class="marketInfo" id="cs0" style="margin-left: 0em; margin-right: 1em; width: 100%; text-align: right">(Size )</div>
+          </div>
+          <div style="display: flex">
+            <div class="marketInfo" id="p1" style="width: 18em; margin-left: 1em">Wood: </div>
+            <div class="marketInfo" id="cs1" style="margin-left: 0em; margin-right: 1em; width: 100%; text-align: right">(Size )</div>
+          </div>
+          <div style="display: flex">
+            <div class="marketInfo" id="p2" style="width: 18em; margin-left: 1em">Spices: </div>
+            <div class="marketInfo" id="cs2" style="margin-left: 0em; margin-right: 1em; width: 100%; text-align: right">(Size )</div>
+          </div>
+          <div style="display: flex">
+            <div class="marketInfo" id="p3" style="width: 18em; margin-left: 1em">Gold: </div>
+            <div class="marketInfo" id="cs3" style="margin-left: 0em; margin-right: 1em; width: 100%; text-align: right">(Size )</div>
+          </div>
+          <div style="display: flex">
+            <div class="marketInfo" id="p4" style="width: 18em; margin-left: 1em">Medicine: </div>
+            <div class="marketInfo" id="cs4" style="margin-left: 0em; margin-right: 1em; width: 100%; text-align: right">(Size )</div>
+          </div>
+          <div style="display: flex">
+            <div class="marketInfo" id="p5" style="width: 18em; margin-left: 1em">Phones: </div>
+            <div class="marketInfo" id="cs5" style="margin-left: 0em; margin-right: 1em; width: 100%; text-align: right">(Size )</div>
+          </div>
+          <div style="display: flex">
+            <div class="marketInfo" id="p6" style="width: 18em; margin-left: 1em">Computers: </div>
+            <div class="marketInfo" id="cs6" style="margin-left: 0em; margin-right: 1em; width: 100%; text-align: right">(Size )</div>
+          </div>
+          <div style="display: flex">
+            <div class="marketInfo" id="p7" style="width: 18em; margin-left: 1em">Ray Guns: </div>
+            <div class="marketInfo" id="cs7" style="margin-left: 0em; margin-right: 1em; width: 100%; text-align: right">(Size )</div>
+          </div>
+          <div style="display: flex">
+            <div class="marketInfo" id="p8" style="width: 18em; margin-left: 1em">Nanobots: </div>
+            <div class="marketInfo" id="cs8" style="margin-left: 0em; margin-right: 1em; width: 100%; text-align: right">(Size )</div>
+          </div>
+          <div style="display: flex">
+            <div class="marketInfo" id="p9" style="width: 18em; margin-left: 1em">Dark Matter: </div>
+            <div class="marketInfo" id="cs9" style="margin-left: 0em; margin-right: 1em; width: 100%; text-align: right">(Size )</div>
+          </div>
+          <div style="display: flex">
+            <div class="marketInfo" id="p10" style="width: 18em; margin-left: 1em">Special: </div>
+            <div class="marketInfo" id="cs10" style="margin-left: 0em; margin-right: 1em; width: 100%; text-align: right">(Size )</div>
+          </div>
+        </div>
+
+        <div class="box" style="width: 20vw">
+        </div>
+
+        <div class="box" style="width: 16vw">
+          <div class="mediumText" id="name" style="text-align: center; margin-top: 1em">Name</div>
+          <div class="systemInfo" id="pilotSkill">Pilot: </div>
+          <div class="systemInfo" id="fighterSkill">Fighter: </div>
+          <div class="systemInfo" id="merchantSkill">Merchant: </div>
+          <div class="systemInfo" id="engineerSkill">Engineer: </div>
+          <div class="systemInfo" id="credits">Credits</div>
+        </div>
+
+      </div>
+
+      <div style="margin: auto; height: 49vh; display: flex">
+
+        <div class="box" style="width: 20vw">
+          <div class="mediumText" style="text-align: center; margin-top: 1em">Current System</div>
+          <div class="systemInfo" id="regionName">Name: </div>
+          <div class="systemInfo" id="regionTech">Tech Level: </div>
+          <div class="systemInfo" id="regionGov">Goverment: </div>
+          <div class="systemInfo" id="regionClimate">Climate: </div>
+          <div class="systemInfo" id="regionCoord">Coordinates: </div>
+        </div>
+
+        <div class="box" style="width: 48em">
+          <div class="mediumText" style="text-align: center; margin-top: 1em">Map</div>
+
+          <div id="chart_div" style="width: relative; height: 49vh; margin-left: -5em; margin-right: -5em; margin-bottom: -3em; margin-top: -4em"></div>
+        </div>
+
+        <div class="box" style="width: 20vw">
+          <div class="mediumText" style="text-align: center; margin-top: 1em">Target System</div>
+          <div class="systemInfo" id="targetName">Name: </div>
+          <div class="systemInfo" id="targetTech">Tech Level: </div>
+          <div class="systemInfo" id="targetCoords">Coordinates: </div>
+          <div class="systemInfo" id="targetDist">Distance: </div>
+          <div class="systemInfo" id="targetCost">Fuel Cost: </div>
+          <div style="text-align: center">
+            <form action="/Map/Travel" method="post">
+              <input type="hidden" id="nextRegionInput" name="nextRegion"/>
+              <input type="hidden" id="nextRegionFuelCost" name="nextFuelCost"/>
+              <input type="submit" value="Travel" class="warpButton" style="margin-top: 10vh; height: 2em; width: 8em" onClick="return validNextRegion()"/>
+            </form>
+          </div>
+        </div>
+
+        <div class="box" style="width: 20vw; overflow: auto">
+          <div class="mediumText" style="text-align: center; margin-top: 1em">Ship</div>
+          <div class="systemInfo" id="shipType">Type: </div>
+          <div class="systemInfo" id="shipCargo">Cargo: </div>
+          <div class="systemInfo" id="shipFuel">Fuel: </div>
+          <div class="systemInfo" id="shipHealth">Health: </div>
+          <div class="systemInfo" id="shipSpeed">Speed: </div>
+          <div style="text-align: center">
+            <form action="/Map/Refuel" method="post">
+              <input type="submit" value="Refuel" class="warpButton" style="margin-top: 3vh; height: 2em; width: 8em" onClick="return validRefuel()"/>
+            </form>
+            <form action="/Map/Repair" method="post">
+              <input type="submit" value="Repair" class="warpButton" style="margin-top: 1.5vh; height: 2em; width: 8em" onClick="return validRepair()"/>
+            </form>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </body>

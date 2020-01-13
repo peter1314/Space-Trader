@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title> Space Trader </title>
+    <link rel="stylesheet" href="../static/css/style.css">
+
+    <script type="text/javascript">
+
+      var playerData = {{ playerData|tojson }};
+
+      //loads all intial data from the provided jsons
+      function loadData() {
+        document.getElementById("name").innerHTML = playerData.name;
+        document.getElementById("pilotSkill").innerHTML = playerData.pilot_skill;
+        document.getElementById("fighterSkill").innerHTML = playerData.fighter_skill;
+        document.getElementById("merchantSkill").innerHTML = playerData.merchant_skill;
+        document.getElementById("engineerSkill").innerHTML = playerData.engineer_skill;
+        document.getElementById("difficulty").innerHTML = playerData.difficulty;
+        document.getElementById("credits").innerHTML = playerData.credits;
+      }
+      
+    </script>
+  </head>
+  
+  <body class = "mainFont" bgcolor="#c4c4c4" onload="loadData()">
+    <div style="float: left; width: 20%">
+      &nbsp;
+    </div>
+    <div align="center" style="float: left; width: 60%">
+      <h1 class = "largeText" id="name" style="margin-top: 3em"></h1>
+
+      <div style="margin-top: 4em; display: inline-block; margin-left: auto; margin-right: auto">
+        <div style="margin-top: 3em; display: flex">
+          <div class = "skills">
+            <div>Pilot</div>
+            <div id="pilotSkill"></div>
+          </div>
+          <div class = "skills">
+            <div>Fighter</div>
+            <div id="fighterSkill"></div>
+          </div>
+          <div class = "skills">
+            <div>Merchant</div>
+            <div id="merchantSkill"></div>
+          </div>
+          <div class = "skills">
+            <div>Engineer</div>
+            <div id="engineerSkill"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 4em">
+        <a href="CharacterCreation" style="margin-right: 6em; text-decoration: none">
+          <button class="centerButton" style="font-size: 3em">Back</button>
+        </a>
+
+        <a href="Map" style="margin-left: 6em; text-decoration: none">
+          <button class="centerButton" style="font-size: 3em">Begin</button>
+        </a>
+      </div>
+
+    </div>
+      <div style="float: right; width: 20%">
+        <div style="display: flex"><h2>Difficulty:&nbsp;  </h2><h2 id="difficulty"></h2></div>
+        <div style="display: flex"><h2>Credits:&nbsp;  </h2><h2 id="credits"></h2></div>
+      </div>
+  </body>
+</html>

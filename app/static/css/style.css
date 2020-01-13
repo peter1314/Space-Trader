@@ -1,0 +1,254 @@
+.mainFont {
+  color: #646464;
+  font-family: monospace;
+}
+
+.largeText {
+  font-size: 4em;
+}
+
+.mediumLargeText {
+  font-size: 2.5em;
+}
+
+.mediumText {
+  font-size: 1.75em;
+}
+
+.centerInfo {
+  position: center;
+  text-align: center;
+}
+
+.centerButton {
+  border: none;
+  color: #c4c4c4;
+  font-size: 2em;
+  position: center;
+  padding: 0.5em 1em;
+  text-align: center;
+  border-radius: 0.5em;
+  text-decoration: none;
+  display: inline-block;
+  font-family: monospace;
+  background-color: #646464;
+}
+
+.centerButton:hover {
+  filter: brightness(85%);
+}
+
+.difficultyButton {
+  border: none;
+  color: white;
+  font-size: 2em;
+  padding: 0.5em 1em;
+  text-align: center;
+  margin-left: 0.5em;
+  margin-right: 0.5em;
+  border-radius: 0.5em;
+  text-decoration: none;
+  display: inline-block;
+  font-family: monospace;
+}
+
+.input {
+  width: 10em;
+  border: none;
+  height: 1.5em;
+  color: #646464;
+  font-size: 1.5em;
+  padding-left: 0.5em;
+  padding-top: 0.25em;
+  border-radius: 0.5em;
+  padding-bottom: 0.25em;
+  font-family: monospace;
+}
+
+.marketInput {
+  postion: center;
+  width: 3em;
+  border: none;
+  height: 0.85em;
+  color: #646464;
+  font-size: 1.125em;
+  padding-left: 0.5em;
+  padding-top: 0.15em;
+  border-radius: 0.25em;
+  padding-bottom: 0.15em;
+  margin-top: 0.325em;
+  font-family: monospace;
+}
+
+.skills {
+  width: 5em;
+  border: none;
+  font-size: 2em;
+  color: #c4c4c4;
+  padding: 0.5em 1em;
+  margin-left: 0.5em;
+  margin-right: 0.5em;
+  border-radius: 0.5em;
+  background-color: #646464;
+}
+
+.skillButton {
+  width: 1.5em;
+  border: none;
+  color: #c4c4c4;
+  font-size: 1em;
+  margin-top: 1em;
+  text-align: center;
+  margin-left: 0.1em;
+  margin-right: 0.1em;
+  border-radius: 0.25em;
+  display: inline-block;
+  text-decoration: none;
+  font-family: monospace;
+  background-color: #424242;
+}
+.skillButton:hover {
+  filter: brightness(85%);
+}
+
+.confirmButton {
+  postion: center;
+  font-family: monospace;
+  font-size: 3em;
+  color: #c4c4c4;
+  text-align: center;
+  text-decoration: none;
+  background-color: #646464;
+  border: none;
+  border-radius: 0.5em;
+  padding: 0.4em 2.5em;
+  display: inline-block;
+}
+.confirmButton:hover {
+  filter: brightness(85%);
+}
+
+.swal-footer {
+  text-align: center;
+  margin-bottom: 1em;
+}
+
+.swal-button:focus {
+  box-shadow: none;
+}
+
+.systemInfo {
+  text-align: left;
+  font-size: 1.25em;
+  margin-top: 0.8em;
+  margin-left: 2em
+}
+
+.marketInfo {
+  text-align: left;
+  font-size: 1.125em;
+  margin-top: 0.25em;
+  margin-left: 2em
+}
+
+.warpButton {
+  postion: center;
+  font-family: monospace;
+  font-size: 1.75em;
+  color: #c4c4c4;
+  text-align: center;
+  text-decoration: none;
+  background-color: #646464;
+  border: none;
+  border-radius: 0.25em;
+}
+
+.tradeButton {
+  postion: center;
+  font-family: monospace;
+  font-size: 1.5em;
+  color: #c4c4c4;
+  text-align: center;
+  text-decoration: none;
+  background-color: #646464;
+  border: none;
+  border-radius: 0.25em;
+}
+
+.price {
+  width: 5em;
+  margin-left: 2em;
+  padding-top: .25em;
+  text-align: left;
+}
+
+.totalPrice {
+  width: 5.5em;
+  margin-left: .5em;
+  padding-top: .25em;
+  text-align: left;
+}
+
+.box {
+  margin: 2px;
+  border: 2px;
+  border-style: solid;
+  border-color: #646464;
+  border-radius: 0.5em;
+}
+
+.overlay {
+  position: fixed; /* Sit on top of the page content */
+  display: none; /* Hidden by default */
+  width: 100%; /* Full width (cover the whole page) */
+  height: 100%; /* Full height (cover the whole page) */
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0,0,0,0.25); /* Black background with opacity */
+  z-index: 2; /* Specify a stack order in case you're using a different order for other elements */
+  cursor: pointer; /* Add a pointer on hover */
+}
+
+.npcBlock {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%,-50%);
+  -ms-transform: translate(-50%,-50%);
+  width: 40vw;
+  height: 60vh;
+  background-color: #c4c4c4;
+  margin: 2px;
+  border: 2px;
+  border-style: solid;
+  border-color: #646464;
+  border-radius: 1.5em;
+}
+
+.npcTitle{
+  padding-top: 1vh;
+  text-align: center;
+  font-size: 2.0em;
+}
+
+.npcOption{
+  margin-left: auto;
+  margin-right: auto;
+  font-size: 2.0em;
+}
+
+.npcButton{
+  text-align: center;
+  font-size: .75em;
+  color: #c4c4c4;
+  background-color: #646464;
+  border-color: #646464;
+  height: 7vh;
+  padding-left: 1.5vw;
+  padding-right: 1.5vw;
+  border: 2px;
+  border-style: solid;
+  border-radius: 0.4em;
+}

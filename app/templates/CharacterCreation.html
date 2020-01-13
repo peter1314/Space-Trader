@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title> Space Trader </title>
+    <link rel="stylesheet" href="../static/css/style.css">
+  </head>
+
+  <body class="mainFont" style="background-color: #c4c4c4">
+    <div style="width: 100vw; text-align: center; display: table-cell; vertical-align: middle; height: 97vh">
+      <div style="display: inline-block; width: 60%; margin: 0 auto">
+        <h1 class="largeText">CREATE YOUR TRADER</h1>
+        <div style="margin-top: 2em; display: inline-block; margin-left: auto; margin-right: auto">
+          <div style="display: flex">
+            <h1 class="mediumText" style="margin-top: 0.15em; margin-right:  0.5em; font-size: 2.5em">NAME</h1>
+            <input class="input" style="margin-top: 0.25em; margin-right: 0.5em" type="text" name="playerName" id="playerNameBox">
+            <button class="difficultyButton" style="background-color: #199619;" onClick="setSkillPoints(1)" id="easy">Easy</button>
+            <button class="difficultyButton" style="background-color: #c8c819" onClick="setSkillPoints(2)" id="medium">Medium</button>
+            <button class="difficultyButton" style="background-color: #961919" onClick="setSkillPoints(3)" id="hard">Hard</button>
+          </div>
+        </div>
+
+        <div style="margin-top: 4em; display: inline-block; margin-left: auto; margin-right: auto">
+          <div style="width: 10em; font-size: 2em; display: flex; margin-left: 35%" align="left">
+            Skill Points:&nbsp
+            <div id="skillPoints"></div>
+          </div>
+          <div style="margin-top: 3em; display: flex">
+            <div class="skills">
+              <span>Pilot</span>
+              <div id="pSBNum">0</div>
+              <button class="skillButton" onClick="updateSkills('pilot', 1)">+</button>
+              <button class="skillButton" onClick="updateSkills('pilot', -1)">-</button>
+            </div>
+
+            <div class="skills">
+              <span>Fighter</span>
+              <div id="fSBNum">0</div>
+              <button class="skillButton" onClick="updateSkills('fighter', 1)">+</button>
+              <button class="skillButton" onClick="updateSkills('fighter', -1)">-</button>
+            </div>
+
+            <div class="skills">
+              <span>Merchant</span>
+              <div id="mSBNum">0</div>
+              <button class="skillButton" onClick="updateSkills('merchant', 1)">+</button>
+              <button class="skillButton" onClick="updateSkills('merchant', -1)">-</button>
+            </div>
+
+            <div class="skills">
+              <span>Engineer</span>
+              <div id="eSBNum">0</div>
+              <button class="skillButton" onClick="updateSkills('engineer', 1)">+</button>
+              <button class="skillButton" onClick="updateSkills('engineer', -1)">-</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top: 4em">
+          <form action="/CharacterDisplay" method="post">
+            <input type="hidden" id="nameInput"  name="name" value=""/>
+            <input type="hidden" id="difficultyInput" name="difficultyNum"/>
+            <input type="hidden" id="pilotSkillsInput" name="pilotSkills"/>
+            <input type="hidden" id="fighterSkillsInput" name="fighterSkills"/>
+            <input type="hidden" id="merchantSkillsInput" name="merchantSkills"/>
+            <input type="hidden" id="engSkillsInput" name="engSkills"/>
+            <input type="submit" class="confirmButton" onClick="return canCreateTrader()"/>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <script type="text/javascript" src="../static/js/CharacterCreation.js"></script>
+  </body>
+</html>
